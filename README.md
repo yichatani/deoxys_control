@@ -77,6 +77,12 @@ And install all the python dependencies (feel free to add pull requests if anyth
 pip install -U -r requirements.txt
 ```
 
+```shell
+cd deoxys_control/deoxys
+pip install -e .
+```
+
+
 ## Franka Interface - Intel NUC
 
 Franka Interface is the part which is supposed to run on NUC. Run this 

@@ -56,6 +56,8 @@ def main():
     ]
     action = reset_joint_positions + [-1.0]
 
+    print(f"{len(robot_interface._state_buffer)=}")
+
     while True:
         if len(robot_interface._state_buffer) > 0:
             logger.info(f"Current Robot joint: {np.round(robot_interface.last_q, 3)}")
