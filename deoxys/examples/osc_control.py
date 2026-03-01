@@ -149,15 +149,24 @@ def main():
 
     reset_joints_to(robot_interface, reset_joint_positions)
 
+    # #
+    # print("Current Pose 0:", robot_interface.last_eef_pose)
+    # #
+
     move_to_target_pose(
         robot_interface,
         controller_type,
         controller_cfg,
-        target_delta_pose=[0.2, 0.0, 0.0, 0.0, 0.5, 0.2],
+        # target_delta_pose=[0.2, 0.0, 0.0, 0.0, 0.5, 0.2],
+        target_delta_pose=[-0.2, 0.0, 0.0, 0.0, 0.0, 0.0],
         num_steps=80,
         num_additional_steps=40,
         interpolation_method="linear",
     )
+
+    #
+    print("Current Pose 1:", robot_interface.last_eef_pose)
+    #
 
     robot_interface.close()
 
