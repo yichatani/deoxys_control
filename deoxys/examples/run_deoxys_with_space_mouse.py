@@ -32,13 +32,16 @@ def main():
 
     robot_interface._state_buffer = []
 
-    for i in range(3000):
+    # for i in range(3000):
+    while True:
         start_time = time.time_ns()
 
         action, grasp = input2action(
             device=device,
             controller_type=controller_type,
         )
+
+        # print(f"Action: {action}, Grasp: {grasp}")
 
         robot_interface.control(
             controller_type=controller_type,
