@@ -1,40 +1,73 @@
 """Example script of moving robot joint positions."""
+import os
 import sys
-sys.path.insert(0, '/home/ani/Franka_controller/async_pos_ctrl_cpp/franka_async_controller/build')
+# print(os.path.dirname(os.path.abspath(__file__)))
+# exit()
+
+sys.path.insert(0, '/home/ani/franka_control_ws/deoxys_control/franka_async_controller/build')
 import franka_controller as fc
 import numpy as np
 config = fc.KinematicsConfig()
 config.verbose = True
-config.urdf_path = "/home/ani/Franka_controller/async_pos_ctrl_cpp/franka_async_controller/fr3_robot.urdf"
+config.urdf_path = "/home/ani/franka_control_ws/deoxys_control/franka_async_controller/fr3_robot.urdf"
 
 # kin = fc.FrankaKinematics("172.16.0.2", config)
 kin = fc.FrankaKinematics(config)                                                                                                                                      
 kin.initialize()
 
 # q = np.array([0.09162008114028396, -0.19826458111314524, -0.01990020486871322,-2.4732269941140346, -0.01307073642274261, 2.30396583422025, 0.8480939705504309])
-# pose = kin.compute_fk(q)              # 返回 4x4 numpy array                                                                                                                         
-# print("EE position:", pose[:3, 3])                                                                                                                                                   
-# print("EE rotation:\n", pose[:3, :3])
+# pose_0 = kin.compute_fk(q)              # 返回 4x4 numpy array                                                                                                                         
+# print("EE position:", pose_0[:3, 3])                                                                                                                                                   
+# print("EE rotation:\n", pose_0[:3, :3])
 
-# """
-#     Current Pose: [[ 0.99946286  0.01816329  0.02727742  0.45748515]
-#                     [ 0.0182672  -0.99982677 -0.00356477  0.03220093]
-#                     [ 0.02720795  0.00406114 -0.99962155  0.26492077]
-#                     [ 0.          0.          0.          1.        ]]
-#     """
+# # """
+# #     Current Pose: [[ 0.99946286  0.01816329  0.02727742  0.45748515]
+# #                     [ 0.0182672  -0.99982677 -0.00356477  0.03220093]
+# #                     [ 0.02720795  0.00406114 -0.99962155  0.26492077]
+# #                     [ 0.          0.          0.          1.        ]]
+# #     """
 
-# target_pose = np.array([[ 0.99946286,  0.01816329,  0.02727742,  0.45748515],
-#                         [ 0.0182672,  -0.99982677, -0.00356477,  0.03220093],
-#                         [ 0.02720795, 0.00406114, -0.99962155,  0.26492077],
-#                         [ 0. ,         0. ,         0. ,        1.        ]])                                                                                                                                                              
-# # target_pose[:3, 3] = [0.45748515, 0.03220093, 0.26492077]
+# # target_pose = np.array([[ 0.99946286,  0.01816329,  0.02727742,  0.45748515],
+# #                         [ 0.0182672,  -0.99982677, -0.00356477,  0.03220093],
+# #                         [ 0.02720795, 0.00406114, -0.99962155,  0.26492077],
+# #                         [ 0. ,         0. ,         0. ,        1.        ]])                                                                                                                                                              
+# # # target_pose[:3, 3] = [0.45748515, 0.03220093, 0.26492077]
+
 # seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
-# q_result = kin.solve_ik(target_pose, seed)  # 返回 np.array(7,) 或 None
+# q_result = kin.solve_ik(pose_0, seed)  # 返回 np.array(7,) 或 None
 # print("IK result:", q_result)
 
-# pose = kin.compute_fk(q_result)              # 返回 4x4 numpy array                                                                                                                         
-# print("EE position:", pose[:3, 3])                                                                                                                                                   
-# print("EE rotation:\n", pose[:3, :3])
+# pose_1 = kin.compute_fk(q_result)              # 返回 4x4 numpy array                                                                                                                         
+# print("EE position:", pose_1[:3, 3])                                                                                                                                                   
+# print("EE rotation:\n", pose_1[:3, :3])
+
+# ##
+# from deoxys.utils import YamlConfig, transform_utils
+# def pose_mat_to_vec(pose_mat):
+#     pos = pose_mat[:3, 3].tolist()
+#     quat = transform_utils.mat2quat(pose_mat[:3, :3]).tolist()
+#     return pos + quat
+
+
+# def compute_errors(pose_1, pose_2):
+
+#     pose_a = (
+#         pose_1[:3]
+#         + transform_utils.quat2axisangle(np.array(pose_1[3:]).flatten()).tolist()
+#     )
+#     pose_b = (
+#         pose_2[:3]
+#         + transform_utils.quat2axisangle(np.array(pose_2[3:]).flatten()).tolist()
+#     )
+#     return np.abs(np.array(pose_a) - np.array(pose_b))
+# ##
+
+# pose0_vec = pose_mat_to_vec(pose_0)
+# pose1_vec = pose_mat_to_vec(pose_1)
+# errors = compute_errors(pose0_vec, pose1_vec)
+# print("Pose error [dx, dy, dz, dax, day, daz]:", errors)
+# print("Position error norm:", np.linalg.norm(errors[:3]))
+# print("Orientation error norm:", np.linalg.norm(errors[3:]))
 
 # exit()
 

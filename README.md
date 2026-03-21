@@ -129,3 +129,6 @@ bin/franka-interface config/charmander.yml
 bin/gripper-interface config/charmander.yml
 ```
 
+## Suggestion
+
+Use joint_position_control.py and do your own IK solution. 
