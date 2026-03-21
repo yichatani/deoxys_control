@@ -64,6 +64,41 @@ def reset_joints_to(
     return True
 
 
+def move_joints_to(
+    robot_interface,
+    start_joint_pos: Union[list, np.ndarray],
+    controller_cfg: dict = None,
+    timeout=7,
+    gripper_open=False,
+):
+    assert type(start_joint_pos) is list or type(start_joint_pos) is np.ndarray
+    if controller_cfg is None:
+        controller_cfg = get_default_controller_config(controller_type="JOINT_POSITION")
+    else:
+        assert controller_cfg["controller_type"] == "JOINT_POSITION", (
+            "This function is only for JOINT POSITION mode. You specified "
+            + controller_cfg["controller_type"]
+        )
+        controller_cfg = verify_controller_config(controller_cfg)
+
+    if gripper_open:
+        gripper_action = -1
+    else:
+        gripper_action = 1
+    if type(start_joint_pos) is list:
+        action = start_joint_pos + [gripper_action]
+    else:
+        action = start_joint_pos.tolist() + [gripper_action]
+    
+    robot_interface.control(
+        controller_type="JOINT_POSITION",
+        action=action,
+        controller_cfg=controller_cfg,
+    )
+    robot_interface.close()
+    return True
+
+
 def joint_interpolation_traj(
     start_q, end_q, num_steps=100, traj_interpolator_type="min_jerk"
 ):

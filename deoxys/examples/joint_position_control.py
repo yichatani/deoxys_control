@@ -84,7 +84,7 @@ from deoxys import config_root
 from deoxys.franka_interface import FrankaInterface
 from deoxys.utils import YamlConfig, transform_utils
 from deoxys.utils.input_utils import input2action
-from deoxys.experimental.motion_utils import reset_joints_to
+from deoxys.experimental.motion_utils import reset_joints_to, move_joints_to
 from deoxys.utils.log_utils import get_deoxys_example_logger
 
 logger = get_deoxys_example_logger()
@@ -147,12 +147,13 @@ def main():
                     [ 0.          0.          0.          1.        ]]
     """
 
-    reset_joints_to(robot_interface, reset_joint_positions)
+    move_joints_to(robot_interface, reset_joint_positions)
+    # reset_joints_to(robot_interface, reset_joint_positions)
     pose_mat = robot_interface.last_eef_pose.copy()
     print("Current Pose:", pose_mat)
 
     target_pose = pose_mat.copy()
-    target_pose[:3, 3] += np.array([0.01, 0.0, 0.0])
+    target_pose[:3, 3] += np.array([0.05, 0.0, 0.0])
     print("Target Pose:", target_pose)
 
     ###
@@ -160,27 +161,28 @@ def main():
     q_result = kin.solve_ik(target_pose, seed)
     ###
 
-    reset_joints_to(robot_interface, q_result)
+    move_joints_to(robot_interface, q_result)
+    # reset_joints_to(robot_interface, q_result)
     pose_mat_1 = robot_interface.last_eef_pose.copy()
     print("Current Pose:", pose_mat_1)
 
 
-    target_pose_o = pose_mat_1.copy()
-    target_pose_o[:3, 3] -= np.array([0.01, 0.0, 0.0])
+    # target_pose_o = pose_mat_1.copy()
+    # target_pose_o[:3, 3] -= np.array([0.03, 0.0, 0.0])
 
 
-    ###
-    seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
-    q_result = kin.solve_ik(target_pose_o, seed)
-    ###
+    # ###
+    # seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
+    # q_result = kin.solve_ik(target_pose_o, seed)
+    # ###
 
-    reset_joints_to(robot_interface, q_result)
-    pose_mat_2 = robot_interface.last_eef_pose.copy()
-    print("Current Pose:", pose_mat_2)
+    # reset_joints_to(robot_interface, q_result)
+    # pose_mat_2 = robot_interface.last_eef_pose.copy()
+    # print("Current Pose:", pose_mat_2)
 
 
-    pose0_vec = pose_mat_to_vec(pose_mat)
-    pose1_vec = pose_mat_to_vec(pose_mat_2)
+    pose0_vec = pose_mat_to_vec(target_pose)
+    pose1_vec = pose_mat_to_vec(pose_mat_1)
     errors = compute_errors(pose0_vec, pose1_vec)
     print("Pose error [dx, dy, dz, dax, day, daz]:", errors)
     print("Position error norm:", np.linalg.norm(errors[:3]))
