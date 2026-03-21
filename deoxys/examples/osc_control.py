@@ -118,13 +118,19 @@ def move_to_target_pose(
         (target_pos, target_quat),
         num_steps,
     )
-    osc_move(
-        robot_interface,
-        controller_type,
-        controller_cfg,
-        (target_pos, target_quat),
-        num_additional_steps,
-    )
+    # osc_move(
+    #     robot_interface,
+    #     controller_type,
+    #     controller_cfg,
+    #     (target_pos, target_quat),
+    #     num_additional_steps,
+    # )
+
+
+def pose_mat_to_vec(pose_mat):
+    pos = pose_mat[:3, 3].tolist()
+    quat = transform_utils.mat2quat(pose_mat[:3, :3]).tolist()
+    return pos + quat
 
 
 def main():
@@ -147,28 +153,57 @@ def main():
         0.8480939705504309,
     ]
 
-    reset_joints_to(robot_interface, reset_joint_positions)
+    # reset_joints_to(robot_interface, reset_joint_positions)
 
-    # #
+    #
+    while robot_interface.state_buffer_size == 0:
+        logger.warn("Robot state not received")
+        time.sleep(0.5)
     # print("Current Pose 0:", robot_interface.last_eef_pose)
-    # #
+    pose0_mat = robot_interface.last_eef_pose.copy()
+    print("Current Pose 0:", pose0_mat)
+    #
 
     move_to_target_pose(
         robot_interface,
         controller_type,
         controller_cfg,
         # target_delta_pose=[0.2, 0.0, 0.0, 0.0, 0.5, 0.2],
-        target_delta_pose=[-0.2, 0.0, 0.0, 0.0, 0.0, 0.0],
-        num_steps=80,
+        # target_delta_pose=[0.2, 0.1, 0.1, 0.01, 0.01, 0.01],
+        target_delta_pose=[0.03, 0.0, 0.0, 0.0, 0.0, 0.0],
+        num_steps=1,
+        num_additional_steps=40,
+        interpolation_method="linear",
+    )
+
+    poseh_mat = robot_interface.last_eef_pose.copy()
+    print("Current Pose h:", poseh_mat)
+
+    move_to_target_pose(
+        robot_interface,
+        controller_type,
+        controller_cfg,
+        # target_delta_pose=[0.2, 0.0, 0.0, 0.0, 0.5, 0.2],
+        # target_delta_pose=[-0.2, -0.1, -0.1, -0.01, -0.01, -0.01],
+        target_delta_pose=[-0.03, 0.0, 0.0, 0.0, 0.0, 0.0],
+        num_steps=1,
         num_additional_steps=40,
         interpolation_method="linear",
     )
 
     #
-    print("Current Pose 1:", robot_interface.last_eef_pose)
+    # print("Current Pose 1:", robot_interface.last_eef_pose)
+    pose1_mat = robot_interface.last_eef_pose.copy()
+    print("Current Pose 1:", pose1_mat)
     #
 
-    robot_interface.close()
+    pose0_vec = pose_mat_to_vec(pose0_mat)
+    pose1_vec = pose_mat_to_vec(pose1_mat)
+    errors = compute_errors(pose0_vec, pose1_vec)
+    print("Pose error [dx, dy, dz, dax, day, daz]:", errors)
+    print("Position error norm:", np.linalg.norm(errors[:3]))
+    print("Orientation error norm:", np.linalg.norm(errors[3:]))
+    # robot_interface.close()
 
 
 if __name__ == "__main__":

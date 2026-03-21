@@ -10,19 +10,23 @@ traj_interpolator_cfg:
 #   translation: 150.0
 #   rotation: 250.0
 
-
 Kp:
   translation: 500.0
   rotation: 400.0
+
+# Kp:
+#   translation: 1000.0
+#   rotation: 400.0
+
 
 action_scale:
   translation: 0.05
   rotation: 1.0
 
 # 质量补偿
-# residual_mass_vec: [0.0, 0.0, 0.0, 0.0, 0.1, 0.5, 0.5]
+residual_mass_vec: [0.0, 0.0, 0.0, 0.0, 0.1, 0.5, 0.5]
 # residual_mass_vec: [0.0, 0.0, 0.0, 0.5, 0.1, 0.5, 0.5]
-residual_mass_vec: [0.0, 1.0, 0.1, 0.8, 0.1, 0.5, 0.1]
+# residual_mass_vec: [0.0, 1.0, 0.1, 0.8, 0.1, 0.5, 0.1]
 
 state_estimator_cfg:
   is_estimation: false

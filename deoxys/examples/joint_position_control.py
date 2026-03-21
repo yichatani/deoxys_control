@@ -1,4 +1,43 @@
 """Example script of moving robot joint positions."""
+import sys
+sys.path.insert(0, '/home/ani/Franka_controller/async_pos_ctrl_cpp/franka_async_controller/build')
+import franka_controller as fc
+import numpy as np
+config = fc.KinematicsConfig()
+config.verbose = True
+config.urdf_path = "/home/ani/Franka_controller/async_pos_ctrl_cpp/franka_async_controller/fr3_robot.urdf"
+
+# kin = fc.FrankaKinematics("172.16.0.2", config)
+kin = fc.FrankaKinematics(config)                                                                                                                                      
+kin.initialize()
+
+# q = np.array([0.09162008114028396, -0.19826458111314524, -0.01990020486871322,-2.4732269941140346, -0.01307073642274261, 2.30396583422025, 0.8480939705504309])
+# pose = kin.compute_fk(q)              # 返回 4x4 numpy array                                                                                                                         
+# print("EE position:", pose[:3, 3])                                                                                                                                                   
+# print("EE rotation:\n", pose[:3, :3])
+
+# """
+#     Current Pose: [[ 0.99946286  0.01816329  0.02727742  0.45748515]
+#                     [ 0.0182672  -0.99982677 -0.00356477  0.03220093]
+#                     [ 0.02720795  0.00406114 -0.99962155  0.26492077]
+#                     [ 0.          0.          0.          1.        ]]
+#     """
+
+# target_pose = np.array([[ 0.99946286,  0.01816329,  0.02727742,  0.45748515],
+#                         [ 0.0182672,  -0.99982677, -0.00356477,  0.03220093],
+#                         [ 0.02720795, 0.00406114, -0.99962155,  0.26492077],
+#                         [ 0. ,         0. ,         0. ,        1.        ]])                                                                                                                                                              
+# # target_pose[:3, 3] = [0.45748515, 0.03220093, 0.26492077]
+# seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
+# q_result = kin.solve_ik(target_pose, seed)  # 返回 np.array(7,) 或 None
+# print("IK result:", q_result)
+
+# pose = kin.compute_fk(q_result)              # 返回 4x4 numpy array                                                                                                                         
+# print("EE position:", pose[:3, 3])                                                                                                                                                   
+# print("EE rotation:\n", pose[:3, :3])
+
+# exit()
+
 import argparse
 import pickle
 import threading
@@ -6,12 +45,13 @@ import time
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import numpy as np
+
 
 from deoxys import config_root
 from deoxys.franka_interface import FrankaInterface
-from deoxys.utils import YamlConfig
+from deoxys.utils import YamlConfig, transform_utils
 from deoxys.utils.input_utils import input2action
+from deoxys.experimental.motion_utils import reset_joints_to
 from deoxys.utils.log_utils import get_deoxys_example_logger
 
 logger = get_deoxys_example_logger()
@@ -25,6 +65,25 @@ def parse_args():
     )
     args = parser.parse_args()
     return args
+
+
+def pose_mat_to_vec(pose_mat):
+    pos = pose_mat[:3, 3].tolist()
+    quat = transform_utils.mat2quat(pose_mat[:3, :3]).tolist()
+    return pos + quat
+
+
+def compute_errors(pose_1, pose_2):
+
+    pose_a = (
+        pose_1[:3]
+        + transform_utils.quat2axisangle(np.array(pose_1[3:]).flatten()).tolist()
+    )
+    pose_b = (
+        pose_2[:3]
+        + transform_utils.quat2axisangle(np.array(pose_2[3:]).flatten()).tolist()
+    )
+    return np.abs(np.array(pose_a) - np.array(pose_b))
 
 
 def main():
@@ -48,6 +107,54 @@ def main():
         0.8480939705504309,
     ]
 
+    """
+    Current Pose: [[ 0.99946286  0.01816329  0.02727742  0.45748515]
+                    [ 0.0182672  -0.99982677 -0.00356477  0.03220093]
+                    [ 0.02720795  0.00406114 -0.99962155  0.26492077]
+                    [ 0.          0.          0.          1.        ]]
+    """
+
+    reset_joints_to(robot_interface, reset_joint_positions)
+    pose_mat = robot_interface.last_eef_pose.copy()
+    print("Current Pose:", pose_mat)
+
+    target_pose = pose_mat.copy()
+    target_pose[:3, 3] += np.array([0.01, 0.0, 0.0])
+    print("Target Pose:", target_pose)
+
+    ###
+    seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
+    q_result = kin.solve_ik(target_pose, seed)
+    ###
+
+    reset_joints_to(robot_interface, q_result)
+    pose_mat_1 = robot_interface.last_eef_pose.copy()
+    print("Current Pose:", pose_mat_1)
+
+
+    target_pose_o = pose_mat_1.copy()
+    target_pose_o[:3, 3] -= np.array([0.01, 0.0, 0.0])
+
+
+    ###
+    seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
+    q_result = kin.solve_ik(target_pose_o, seed)
+    ###
+
+    reset_joints_to(robot_interface, q_result)
+    pose_mat_2 = robot_interface.last_eef_pose.copy()
+    print("Current Pose:", pose_mat_2)
+
+
+    pose0_vec = pose_mat_to_vec(pose_mat)
+    pose1_vec = pose_mat_to_vec(pose_mat_2)
+    errors = compute_errors(pose0_vec, pose1_vec)
+    print("Pose error [dx, dy, dz, dax, day, daz]:", errors)
+    print("Position error norm:", np.linalg.norm(errors[:3]))
+    print("Orientation error norm:", np.linalg.norm(errors[3:]))
+
+    exit()
+
     # This is for varying initialization of joints a little bit to
     # increase data variation.
     reset_joint_positions = [
@@ -58,6 +165,7 @@ def main():
 
     print(f"{len(robot_interface._state_buffer)=}")
 
+    i = 0
     while True:
         if len(robot_interface._state_buffer) > 0:
             logger.info(f"Current Robot joint: {np.round(robot_interface.last_q, 3)}")
@@ -78,6 +186,8 @@ def main():
             action=action,
             controller_cfg=controller_cfg,
         )
+        i += 1
+        print(i)
     robot_interface.close()
 
 
