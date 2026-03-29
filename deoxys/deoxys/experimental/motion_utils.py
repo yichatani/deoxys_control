@@ -98,7 +98,8 @@ def move_joints_to(
     )
     end_time = time.time()
     print("Time taken to move joints:", end_time - start_time)
-    robot_interface.close()
+    # robot_interface.close()
+    # time.sleep(1.0)
     return True
 
 

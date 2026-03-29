@@ -90,11 +90,21 @@ from deoxys.utils.log_utils import get_deoxys_example_logger
 logger = get_deoxys_example_logger()
 
 
+# def parse_args():
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("--interface-cfg", type=str, default="charmander.yml")
+#     parser.add_argument(
+#         "--controller-cfg", type=str, default="joint-position-controller.yml"
+#     )
+#     args = parser.parse_args()
+#     return args
+
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--interface-cfg", type=str, default="charmander.yml")
     parser.add_argument(
-        "--controller-cfg", type=str, default="joint-position-controller.yml"
+        "--controller-cfg", type=str, default="joint-impedance-controller.yml"
     )
     args = parser.parse_args()
     return args
@@ -126,8 +136,11 @@ def main():
         config_root + f"/{args.interface_cfg}", use_visualizer=False
     )
     controller_cfg = YamlConfig(config_root + f"/{args.controller_cfg}").as_easydict()
+    seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])
+    gripper_action = 1
 
-    controller_type = "JOINT_POSITION"
+    # controller_type = "JOINT_POSITION"
+    controller_type = "JOINT_IMPEDANCE"
 
     # Golden resetting joints
     reset_joint_positions = [
@@ -155,32 +168,75 @@ def main():
     pose_mat_initial = robot_interface.last_eef_pose.copy()
     print("Current Pose INITIAL:", pose_mat_initial)
 
+    # print("Current q:", robot_interface.last_q)
+
+    # ## Test IK solver
+    # test_ik_q = robot_interface.last_q.copy()
+    # test_ik_pose = robot_interface.last_eef_pose.copy()
+    # solved_q = kin.solve_ik(test_ik_pose, test_ik_q)
+    # fk_result = kin.compute_fk(solved_q)
+    # print("IK FK error:", np.linalg.norm(fk_result[:3,3] - test_ik_pose[:3,3]))
+    # exit()
+    # ##
+
     for _ in range(5):
         pose_mat = robot_interface.last_eef_pose.copy()
+        if pose_mat is None:
+            continue
         print("Current Pose:", pose_mat)
 
         target_pose = pose_mat.copy()
-        target_pose[:3, 3] += np.array([0.05, 0.0, 0.0])
+        target_pose[:3, 3] += np.array([0.01, 0.0, 0.0])
+        pose_mat_initial[:3, 3] += np.array([0.01, 0.0, 0.0])
         print("Target Pose:", target_pose)
 
-        ### Solve IK
-        seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
-        q_result = kin.solve_ik(target_pose, seed)
-        ###
-        move_joints_to(robot_interface, q_result)
+        target_q = kin.solve_ik(target_pose, robot_interface.last_q)
+        action = target_q.tolist() + [gripper_action]
 
-        pose_mat_1 = robot_interface.last_eef_pose.copy()
-        print("Current Pose:", pose_mat_1)
+        # current_q = robot_interface.last_q
+        # target_q = current_q.copy() + np.array([0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        # action = target_q.tolist() + [gripper_action]
+        # time.sleep(0.05)
 
-        target_pose_1 = pose_mat_1.copy()
-        target_pose_1[:3, 3] -= np.array([0.05, 0.0, 0.0])
-        print("Target Pose:", target_pose_1)
 
-        ### Solve IK                                                                                                                    
-        q_result_1 = kin.solve_ik(target_pose_1, seed)
-        ###
-        move_joints_to(robot_interface, q_result_1)
+        #################################################################################
+        # robot_interface.control(
+        #     controller_type=controller_type,                                                                                                 
+        #     action=action,
+        #     controller_cfg=controller_cfg,
+        # )
 
+        error_history = []
+        while True:
+            robot_interface.control(
+                controller_type=controller_type,                                                                                                 
+                action=action,
+                controller_cfg=controller_cfg,
+            )
+            current_q = robot_interface.last_q
+            if current_q is not None:
+                error = np.max(np.abs(np.array(current_q) - np.array(target_q)))
+                print("end_signal:", error)
+                error_history.append(error)
+                if len(error_history) > 5:
+                    error_history.pop(0)
+                if len(error_history) == 5 and (max(error_history) - min(error_history)) < 1e-4:
+                    break
+        #################################################################################
+
+        # pose_mat_1 = robot_interface.last_eef_pose.copy()
+        # print("Current Pose:", pose_mat_1)
+
+        # target_pose_1 = pose_mat_1.copy()
+        # target_pose_1[:3, 3] -= np.array([0.05, 0.0, 0.0])
+        # print("Target Pose:", target_pose_1)
+
+        # ### Solve IK                                                                                                                    
+        # q_result_1 = kin.solve_ik(target_pose_1, seed)
+        # ###
+        # reset_joints_to(robot_interface, q_result_1)
+
+    robot_interface.close()
 
     pose_mat_end = robot_interface.last_eef_pose.copy()
     print("Current Pose END:", pose_mat_end)
