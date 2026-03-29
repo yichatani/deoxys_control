@@ -16,7 +16,7 @@ def reset_joints_to(
     robot_interface,
     start_joint_pos: Union[list, np.ndarray],
     controller_cfg: dict = None,
-    timeout=7,
+    timeout=3,
     gripper_open=False,
 ):
     assert type(start_joint_pos) is list or type(start_joint_pos) is np.ndarray
@@ -90,11 +90,14 @@ def move_joints_to(
     else:
         action = start_joint_pos.tolist() + [gripper_action]
     
+    start_time = time.time()
     robot_interface.control(
         controller_type="JOINT_POSITION",
         action=action,
         controller_cfg=controller_cfg,
     )
+    end_time = time.time()
+    print("Time taken to move joints:", end_time - start_time)
     robot_interface.close()
     return True
 

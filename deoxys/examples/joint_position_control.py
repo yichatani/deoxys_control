@@ -147,25 +147,43 @@ def main():
                     [ 0.          0.          0.          1.        ]]
     """
 
-    move_joints_to(robot_interface, reset_joint_positions)
+    reset_joints_to(robot_interface, reset_joint_positions)
+
+    # move_joints_to(robot_interface, reset_joint_positions)
     # reset_joints_to(robot_interface, reset_joint_positions)
-    pose_mat = robot_interface.last_eef_pose.copy()
-    print("Current Pose:", pose_mat)
 
-    target_pose = pose_mat.copy()
-    target_pose[:3, 3] += np.array([0.05, 0.0, 0.0])
-    print("Target Pose:", target_pose)
+    pose_mat_initial = robot_interface.last_eef_pose.copy()
+    print("Current Pose INITIAL:", pose_mat_initial)
 
-    ###
-    seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
-    q_result = kin.solve_ik(target_pose, seed)
-    ###
+    for _ in range(5):
+        pose_mat = robot_interface.last_eef_pose.copy()
+        print("Current Pose:", pose_mat)
 
-    move_joints_to(robot_interface, q_result)
-    # reset_joints_to(robot_interface, q_result)
-    pose_mat_1 = robot_interface.last_eef_pose.copy()
-    print("Current Pose:", pose_mat_1)
+        target_pose = pose_mat.copy()
+        target_pose[:3, 3] += np.array([0.05, 0.0, 0.0])
+        print("Target Pose:", target_pose)
 
+        ### Solve IK
+        seed = np.array([0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785])                                                                                                                       
+        q_result = kin.solve_ik(target_pose, seed)
+        ###
+        move_joints_to(robot_interface, q_result)
+
+        pose_mat_1 = robot_interface.last_eef_pose.copy()
+        print("Current Pose:", pose_mat_1)
+
+        target_pose_1 = pose_mat_1.copy()
+        target_pose_1[:3, 3] -= np.array([0.05, 0.0, 0.0])
+        print("Target Pose:", target_pose_1)
+
+        ### Solve IK                                                                                                                    
+        q_result_1 = kin.solve_ik(target_pose_1, seed)
+        ###
+        move_joints_to(robot_interface, q_result_1)
+
+
+    pose_mat_end = robot_interface.last_eef_pose.copy()
+    print("Current Pose END:", pose_mat_end)
 
     # target_pose_o = pose_mat_1.copy()
     # target_pose_o[:3, 3] -= np.array([0.03, 0.0, 0.0])
@@ -181,8 +199,8 @@ def main():
     # print("Current Pose:", pose_mat_2)
 
 
-    pose0_vec = pose_mat_to_vec(target_pose)
-    pose1_vec = pose_mat_to_vec(pose_mat_1)
+    pose0_vec = pose_mat_to_vec(pose_mat_initial)
+    pose1_vec = pose_mat_to_vec(pose_mat_end)
     errors = compute_errors(pose0_vec, pose1_vec)
     print("Pose error [dx, dy, dz, dax, day, daz]:", errors)
     print("Position error norm:", np.linalg.norm(errors[:3]))

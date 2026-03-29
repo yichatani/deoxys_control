@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
                                         global_handler->no_msg_counter);
           if (global_handler->no_msg_counter >= 20) {
             global_handler->running = false;
-            global_handler->termination = true;
+            // global_handler->termination = true;
             global_handler->logger->debug(
                 "No valid messages received in 20 steps");
           }
